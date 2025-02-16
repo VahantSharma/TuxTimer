@@ -53,3 +53,25 @@
 #   For calendar synchronization, Calcurse must be installed.
 #
 ################################################################################
+
+
+# Enable strict error handling
+set -o errexit
+set -o nounset
+set -o pipefail
+trap 'echo -e "${RED}Error occurred at line $LINENO. Exiting.${NC}"' ERR
+
+###############################################
+# ANSI Color Codes for Messages
+###############################################
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'  # No Color
+
+#############################################################
+# Global Cache for Task Duration (simple caching mechanism)
+#############################################################
+CACHE_FILE="/tmp/advanced_scheduler_duration.cache"
+CACHE_TIMESTAMP=""
+
