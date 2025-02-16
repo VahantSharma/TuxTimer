@@ -75,3 +75,40 @@ NC='\033[0m'  # No Color
 CACHE_FILE="/tmp/advanced_scheduler_duration.cache"
 CACHE_TIMESTAMP=""
 
+#############################################
+# Dependency Checks & Configuration Setup
+#############################################
+check_dependencies() {
+    local deps=(date crontab)
+    for dep in "${deps[@]}"; do
+        if ! command -v "$dep" >/dev/null 2>&1; then
+            echo -e "${RED}Error: Required command '$dep' is not installed.${NC}"
+            exit 1
+        fi
+    done
+
+    if ! command -v gnuplot >/dev/null 2>&1; then
+        echo -e "${YELLOW}Warning: GNUplot is not installed. 'plot-report' will not work.${NC}"
+    fi
+
+    if command -v whiptail >/dev/null 2>&1; then
+        MENU_TOOL="whiptail"
+    elif command -v dialog >/dev/null 2>&1; then
+        MENU_TOOL="dialog"
+    else
+        MENU_TOOL=""
+    fi
+
+    if command -v fzf >/dev/null 2>&1; then
+        FZF_AVAILABLE=1
+    else
+        FZF_AVAILABLE=0
+    fi
+
+    if command -v calcurse >/dev/null 2>&1; then
+        CALCURSE_AVAILABLE=1
+    else
+        CALCURSE_AVAILABLE=0
+    fi
+}
+check_dependencies
