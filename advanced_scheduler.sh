@@ -12,11 +12,13 @@
 #     - Export functionality for logs in CSV and JSON formats.
 #     - Generation of analytical reports using GNUplot.
 #     - Synchronization with external calendar services using Calcurse.
+#     - Enhanced real-time notifications via desktop, email, and messaging.
 #
 #   Enhancements:
 #     - Advanced argument parsing via getopts.
 #     - Modularized code with clear sections (dependency checks, configuration,
-#       logging, task management, calendar integration, interactive menu).
+#       logging, notification system, task management, calendar integration,
+#       interactive menu).
 #     - Robust input validation, error handling, and caching.
 #     - Dynamic task selection using fzf (if available) with a CLI fallback.
 #
@@ -54,7 +56,6 @@
 #
 ################################################################################
 
-
 # Enable strict error handling
 set -o errexit
 set -o nounset
@@ -75,11 +76,27 @@ NC='\033[0m'  # No Color
 CACHE_FILE="/tmp/advanced_scheduler_duration.cache"
 CACHE_TIMESTAMP=""
 
-#############################################
+#############################################################
+# Notification Configuration Defaults
+# These can be overridden via the external configuration file.
+#############################################################
+: ${NOTIFY_DESKTOP:=1}      # Enable desktop notifications via notify-send
+: ${NOTIFY_EMAIL:=0}        # Enable email notifications (requires mail command)
+: ${EMAIL_RECIPIENT:=""}     # Recipient email address for notifications
+: ${NOTIFY_MESSAGING:=0}    # Enable messaging notifications (e.g., Slack)
+: ${MESSAGING_API_URL:=""}   # API endpoint for messaging notifications
+: ${ALERT_THRESHOLD:=30}     # Minimum seconds between notifications of same event
+: ${QUIET_HOURS_START:="22:00"}  # Start time for quiet hours (HH:MM)
+: ${QUIET_HOURS_END:="06:00"}    # End time for quiet hours (HH:MM)
+
+# Global associative array to track last notification times
+declare -A LAST_NOTIFICATION
+
+###############################################
 # Dependency Checks & Configuration Setup
-#############################################
+###############################################
 check_dependencies() {
-    local deps=(date crontab)
+    local deps=(date crontab sed awk mktemp)
     for dep in "${deps[@]}"; do
         if ! command -v "$dep" >/dev/null 2>&1; then
             echo -e "${RED}Error: Required command '$dep' is not installed.${NC}"
@@ -113,10 +130,10 @@ check_dependencies() {
 }
 check_dependencies
 
-#############################################
+###############################################
 # Configuration Management
 # shellcheck source=/dev/null
-#############################################
+###############################################
 CONFIG_FILE="./advanced_scheduler.conf"
 if [[ -f "$CONFIG_FILE" ]]; then
     source "$CONFIG_FILE"
@@ -133,7 +150,7 @@ touch "$TASK_DB" "$LOG_FILE" "$DEBUG_LOG"
 # Logging Functions with Levels
 #######################################
 log_debug() {
-    if [[ "$DEBUG_MODE" -eq 1 ]]; then
+    if [[ "${DEBUG_MODE:-0}" -eq 1 ]]; then
         echo "$(date +"%Y-%m-%d %H:%M:%S") [DEBUG] - $*" >> "$DEBUG_LOG"
     fi
 }
@@ -146,5 +163,3 @@ log_warn() {
 log_error() {
     echo "$(date +"%Y-%m-%d %H:%M:%S") [ERROR] - $*" >> "$DEBUG_LOG"
 }
-
-#######################################
