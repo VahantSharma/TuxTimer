@@ -112,3 +112,39 @@ check_dependencies() {
     fi
 }
 check_dependencies
+
+#############################################
+# Configuration Management
+# shellcheck source=/dev/null
+#############################################
+CONFIG_FILE="./advanced_scheduler.conf"
+if [[ -f "$CONFIG_FILE" ]]; then
+    source "$CONFIG_FILE"
+else
+    TASK_DB="tasks.db"
+    LOG_FILE="tasks.log"
+    CRON_TEMP="cron_temp.txt"
+    DEBUG_LOG="debug.log"
+    DEBUG_MODE=0
+fi
+touch "$TASK_DB" "$LOG_FILE" "$DEBUG_LOG"
+
+#######################################
+# Logging Functions with Levels
+#######################################
+log_debug() {
+    if [[ "$DEBUG_MODE" -eq 1 ]]; then
+        echo "$(date +"%Y-%m-%d %H:%M:%S") [DEBUG] - $*" >> "$DEBUG_LOG"
+    fi
+}
+log_info() {
+    echo "$(date +"%Y-%m-%d %H:%M:%S") [INFO] - $*" >> "$DEBUG_LOG"
+}
+log_warn() {
+    echo "$(date +"%Y-%m-%d %H:%M:%S") [WARN] - $*" >> "$DEBUG_LOG"
+}
+log_error() {
+    echo "$(date +"%Y-%m-%d %H:%M:%S") [ERROR] - $*" >> "$DEBUG_LOG"
+}
+
+#######################################
