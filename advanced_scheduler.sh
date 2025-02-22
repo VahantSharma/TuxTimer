@@ -248,3 +248,28 @@ send_notification() {
     send_email_notification "$title" "$message"
     send_messaging_notification "$title" "$message"
 }
+
+############################################################
+# Caching Function for Task Duration
+############################################################
+get_cached_duration() {
+    local task_id="$1"
+    local log_mtime
+    log_mtime=$(stat -c %Y "$LOG_FILE")
+    if [[ -f "$CACHE_FILE" && "$log_mtime" -eq "$CACHE_TIMESTAMP" ]]; then
+        local cached
+        cached=$(grep "^${task_id}," "$CACHE_FILE" | cut -d',' -f2)
+        if [[ -n "$cached" ]]; then
+            echo "$cached"
+            return
+        fi
+    fi
+    CACHE_TIMESTAMP="$log_mtime"
+    > "$CACHE_FILE"
+    while IFS=',' read -r tid _; do
+        local dur
+        dur=$(calculate_task_duration "$tid")
+        echo "${tid},${dur}" >> "$CACHE_FILE"
+    done < <(awk -F, 'NF{print $1}' "$LOG_FILE" | sort | uniq)
+    grep "^${task_id}," "$CACHE_FILE" | cut -d',' -f2
+}
