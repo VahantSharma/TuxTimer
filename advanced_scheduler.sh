@@ -301,3 +301,18 @@ select_task() {
     id=$(echo "$selected" | cut -d: -f1)
     echo "$id"
 }
+
+get_task_id() {
+    local input="$1"
+    if [[ "$input" =~ ^[0-9]+$ ]]; then
+        echo "$input"
+    else
+        local id
+        id=$(select_task "$input")
+        if [[ -z "$id" ]]; then
+            echo -e "${RED}Task selection failed. Exiting.${NC}" >&2
+            exit 1
+        fi
+        echo "$id"
+    fi
+}
