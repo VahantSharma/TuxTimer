@@ -187,3 +187,29 @@ is_within_quiet_hours() {
     fi
     return 1
 }
+
+# Send a desktop notification using notify-send.
+send_desktop_notification() {
+    local title="$1"
+    local message="$2"
+    if [[ "$NOTIFY_DESKTOP" -eq 1 ]]; then
+        if command -v notify-send >/dev/null 2>&1; then
+            notify-send "$title" "$message"
+        else
+            log_warn "notify-send not found; desktop notification not sent."
+        fi
+    fi
+}
+
+# Send an email notification (requires a configured mail command).
+send_email_notification() {
+    local title="$1"
+    local message="$2"
+    if [[ "$NOTIFY_EMAIL" -eq 1 && -n "$EMAIL_RECIPIENT" ]]; then
+        if command -v mail >/dev/null 2>&1; then
+            echo "$message" | mail -s "$title" "$EMAIL_RECIPIENT"
+        else
+            log_warn "mail command not found; email notification not sent."
+        fi
+    fi
+}
