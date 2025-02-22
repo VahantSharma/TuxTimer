@@ -213,3 +213,38 @@ send_email_notification() {
         fi
     fi
 }
+
+# Send a messaging notification using a specified API.
+send_messaging_notification() {
+    local title="$1"
+    local message="$2"
+    if [[ "$NOTIFY_MESSAGING" -eq 1 && -n "$MESSAGING_API_URL" ]]; then
+        curl -s -X POST -H "Content-Type: application/json" \
+            -d "{\"title\": \"$title\", \"message\": \"$message\"}" \
+            "$MESSAGING_API_URL" >/dev/null
+    fi
+}
+
+# Generic notification function that checks alert thresholds and quiet hours.
+send_notification() {
+    local event_type="$1"
+    local title="$2"
+    local message="$3"
+    local now
+    now=$(date +%s)
+    if [[ -n "${LAST_NOTIFICATION[$event_type]:-}" ]]; then
+        local diff=$(( now - LAST_NOTIFICATION[$event_type] ))
+        if (( diff < ALERT_THRESHOLD )); then
+            log_info "Notification for event '$event_type' suppressed (only $diff seconds since last alert)."
+            return
+        fi
+    fi
+    LAST_NOTIFICATION[$event_type]=$now
+    if is_within_quiet_hours; then
+        log_info "Notification for event '$event_type' suppressed due to quiet hours."
+        return
+    fi
+    send_desktop_notification "$title" "$message"
+    send_email_notification "$title" "$message"
+    send_messaging_notification "$title" "$message"
+}
