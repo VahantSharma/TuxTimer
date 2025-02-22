@@ -163,3 +163,27 @@ log_warn() {
 log_error() {
     echo "$(date +"%Y-%m-%d %H:%M:%S") [ERROR] - $*" >> "$DEBUG_LOG"
 }
+
+############################################################
+# Notification Functions
+############################################################
+
+# Check if current time is within user-defined quiet hours.
+is_within_quiet_hours() {
+    local current_minutes quiet_start_minutes quiet_end_minutes
+    current_minutes=$((10#$(date +"%H") * 60 + 10#$(date +"%M")))
+    IFS=: read start_hour start_min <<< "$QUIET_HOURS_START"
+    IFS=: read end_hour end_min <<< "$QUIET_HOURS_END"
+    quiet_start_minutes=$((10#$start_hour * 60 + 10#$start_min))
+    quiet_end_minutes=$((10#$end_hour * 60 + 10#$end_min))
+    if (( quiet_start_minutes < quiet_end_minutes )); then
+        if (( current_minutes >= quiet_start_minutes && current_minutes < quiet_end_minutes )); then
+            return 0
+        fi
+    else
+        if (( current_minutes >= quiet_start_minutes || current_minutes < quiet_end_minutes )); then
+            return 0
+        fi
+    fi
+    return 1
+}
