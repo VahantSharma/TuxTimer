@@ -273,3 +273,31 @@ get_cached_duration() {
     done < <(awk -F, 'NF{print $1}' "$LOG_FILE" | sort | uniq)
     grep "^${task_id}," "$CACHE_FILE" | cut -d',' -f2
 }
+
+
+############################################################
+# Task Selection Functions
+############################################################
+select_task() {
+    local query="$1"
+    local tasks
+    tasks=$(awk -F, '{gsub(/"/, "", $2); print $1": "$2}' "$TASK_DB")
+    if [[ -n "$query" ]]; then
+        tasks=$(echo "$tasks" | grep -i "$query")
+    fi
+    if [[ -z "$tasks" ]]; then
+        echo -e "${RED}No tasks found matching query: $query${NC}" >&2
+        return 1
+    fi
+    local selected
+    if [[ "$FZF_AVAILABLE" -eq 1 ]]; then
+        selected=$(echo "$tasks" | fzf --prompt="Select task: ")
+    else
+        echo -e "${YELLOW}Multiple tasks found. Please choose one by entering the task ID:${NC}"
+        echo "$tasks"
+        read -rp "Task ID: " selected
+    fi
+    local id
+    id=$(echo "$selected" | cut -d: -f1)
+    echo "$id"
+}
