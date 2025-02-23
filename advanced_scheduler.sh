@@ -699,3 +699,14 @@ calculate_task_duration() {
     fi
     echo "$total_duration"
 }
+
+# export_csv: Exports log data in CSV format.
+export_csv() {
+    local output_file="$1"
+    if cp "$LOG_FILE" "$output_file"; then
+        echo -e "${GREEN}Log data exported to ${output_file} in CSV format.${NC}"
+        log_debug "Exported log data to CSV: ${output_file}"
+    else
+        echo -e "${RED}Error exporting CSV.${NC}"
+    fi
+}
