@@ -639,3 +639,15 @@ start_task() {
     log_debug "Started/resumed task ${task_id} at ${start_time}"
     send_notification "task_start" "Task Started" "Task ${task_id} started/resumed at ${start_time}."
 }
+
+
+# pause_task: Logs a pause event and sends a notification.
+pause_task() {
+    local task_id="$1"
+    local pause_time
+    pause_time=$(date +"%Y-%m-%d %H:%M:%S")
+    echo "${task_id},pause,${pause_time}" >> "$LOG_FILE"
+    echo -e "${GREEN}Task ${task_id} paused at ${pause_time}.${NC}"
+    log_debug "Paused task ${task_id} at ${pause_time}"
+    send_notification "task_pause" "Task Paused" "Task ${task_id} paused at ${pause_time}."
+}
