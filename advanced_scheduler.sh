@@ -560,3 +560,20 @@ validate_date() {
     fi
     return 0
 }
+
+# add_task: Adds a new task.
+add_task() {
+    local description="$1"
+    local deadline="$2"
+    local priority="$3"
+    local recurrence="$4"
+
+    validate_date "$deadline" || return 1
+
+    local id
+    id=$(date +%s)  # Use epoch time as unique ID
+
+    echo "${id},\"${description}\",\"${deadline}\",${priority},${recurrence},pending" >> "$TASK_DB"
+    echo -e "${GREEN}Task added with ID: ${id}${NC}"
+    log_debug "Added task ${id}: ${description}, Deadline: ${deadline}, Priority: ${priority}, Recurrence: ${recurrence}"
+}
