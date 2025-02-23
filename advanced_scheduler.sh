@@ -671,3 +671,31 @@ end_task() {
     log_debug "Ended task ${task_id} at ${end_time}"
     send_notification "task_end" "Task Ended" "Task ${task_id} ended at ${end_time}."
 }
+
+# calculate_task_duration: Computes total active time for a task.
+calculate_task_duration() {
+    local task_id="$1"
+    local total_duration=0
+    local last_start=""
+    while IFS=',' read -r tid action timestamp; do
+        if [ "$tid" == "$task_id" ]; then
+            local epoch
+            epoch=$(date -d "$timestamp" +%s 2>/dev/null)
+            if [ "$action" == "start" ]; then
+                last_start=$epoch
+            elif [[ "$action" == "pause" || "$action" == "end" ]]; then
+                if [ -n "$last_start" ]; then
+                    local diff=$(( epoch - last_start ))
+                    total_duration=$(( total_duration + diff ))
+                    last_start=""
+                fi
+            fi
+        fi
+    done < "$LOG_FILE"
+    if [ -n "$last_start" ]; then
+        local now
+        now=$(date +%s)
+        total_duration=$(( total_duration + now - last_start ))
+    fi
+    echo "$total_duration"
+}
