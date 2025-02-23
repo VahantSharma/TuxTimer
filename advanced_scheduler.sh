@@ -423,3 +423,44 @@ while getopts ":h" opt; do
     esac
 done
 shift $((OPTIND - 1))
+
+############################################################
+# Interactive Menu
+############################################################
+interactive_menu() {
+    local choice
+    if [[ -n "$MENU_TOOL" ]]; then
+        choice=$(whiptail --title "Advanced Scheduler Menu" \
+            --menu "Choose an option:" 22 78 14 \
+            "1" "Add Task" \
+            "2" "Update Task" \
+            "3" "Delete Task" \
+            "4" "Start/Resume Task" \
+            "5" "Pause Task" \
+            "6" "End Task" \
+            "7" "List Tasks" \
+            "8" "Schedule Tasks" \
+            "9" "Export Log to CSV" \
+            "10" "Export Log to JSON" \
+            "11" "Plot Report" \
+            "12" "Sync Calendar" \
+            "13" "Help" \
+            "14" "Exit" 3>&1 1>&2 2>&3)
+    else
+        echo -e "${YELLOW}Please choose an option:${NC}"
+        echo "1) Add Task"
+        echo "2) Update Task"
+        echo "3) Delete Task"
+        echo "4) Start/Resume Task"
+        echo "5) Pause Task"
+        echo "6) End Task"
+        echo "7) List Tasks"
+        echo "8) Schedule Tasks"
+        echo "9) Export Log to CSV"
+        echo "10) Export Log to JSON"
+        echo "11) Plot Report"
+        echo "12) Sync Calendar"
+        echo "13) Help"
+        echo "14) Exit"
+        read -e -rp "Enter your choice [1-14]: " choice
+    fi
