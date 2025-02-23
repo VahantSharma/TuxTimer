@@ -619,3 +619,12 @@ update_task() {
     echo -e "${GREEN}Task ${task_id} updated: set $field to ${new_value}.${NC}"
     log_debug "Updated task ${task_id}: set $field to ${new_value}"
 }
+
+
+# delete_task: Deletes a task.
+delete_task() {
+    local task_id="$1"
+    sed -i "/^${task_id},/d" "$TASK_DB"
+    echo -e "${GREEN}Task ${task_id} deleted.${NC}"
+    log_debug "Deleted task ${task_id}"
+}
