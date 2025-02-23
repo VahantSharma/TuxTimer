@@ -577,3 +577,14 @@ add_task() {
     echo -e "${GREEN}Task added with ID: ${id}${NC}"
     log_debug "Added task ${id}: ${description}, Deadline: ${deadline}, Priority: ${priority}, Recurrence: ${recurrence}"
 }
+
+
+# list_tasks: Displays all tasks.
+list_tasks() {
+    if [[ ! -s "$TASK_DB" ]]; then
+        echo -e "${YELLOW}No tasks found.${NC}"
+        return
+    fi
+    echo -e "${GREEN}ID, Description, Deadline, Priority, Recurrence, Status${NC}"
+    cat "$TASK_DB"
+}
