@@ -588,3 +588,34 @@ list_tasks() {
     echo -e "${GREEN}ID, Description, Deadline, Priority, Recurrence, Status${NC}"
     cat "$TASK_DB"
 }
+
+
+# update_task: Updates a task field.
+update_task() {
+    local task_id="$1"
+    local field="$2"
+    local new_value="$3"
+    local field_index
+
+    case "$field" in
+        description) field_index=2 ;;
+        deadline)
+            validate_date "$new_value" || return 1
+            field_index=3 ;;
+        priority) field_index=4 ;;
+        recurrence) field_index=5 ;;
+        status) field_index=6 ;;
+        *)
+            echo -e "${RED}Unknown field: $field${NC}"
+            return 1
+            ;;
+    esac
+
+    awk -F, -v id="$task_id" -v idx="$field_index" -v new="$new_value" 'BEGIN {OFS=","} {
+        if ($1 == id) { $idx = new }
+        print
+    }' "$TASK_DB" > "${TASK_DB}.tmp" && mv "${TASK_DB}.tmp" "$TASK_DB"
+
+    echo -e "${GREEN}Task ${task_id} updated: set $field to ${new_value}.${NC}"
+    log_debug "Updated task ${task_id}: set $field to ${new_value}"
+}
