@@ -659,3 +659,15 @@ resume_task() {
     echo -e "${GREEN}Task ${1} resumed.${NC}"
     log_debug "Resumed task ${1}"
 }
+
+# end_task: Logs an end event, updates task status, and sends a notification.
+end_task() {
+    local task_id="$1"
+    local end_time
+    end_time=$(date +"%Y-%m-%d %H:%M:%S")
+    echo "${task_id},end,${end_time}" >> "$LOG_FILE"
+    sed -i "s/^\(${task_id},.*,\)pending[[:space:]]*\$/\1completed/" "$TASK_DB"
+    echo -e "${GREEN}Task ${task_id} ended at ${end_time}.${NC}"
+    log_debug "Ended task ${task_id} at ${end_time}"
+    send_notification "task_end" "Task Ended" "Task ${task_id} ended at ${end_time}."
+}
