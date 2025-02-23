@@ -548,3 +548,15 @@ interactive_menu() {
     interactive_menu
 }
 
+################################################################################
+# Core Task Management Functions
+################################################################################
+
+# validate_date: Verifies the provided date string.
+validate_date() {
+    if ! date -d "$1" >/dev/null 2>&1; then
+        echo -e "${RED}Invalid date format: $1${NC}" >&2
+        return 1
+    fi
+    return 0
+}
