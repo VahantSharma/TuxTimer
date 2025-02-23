@@ -628,3 +628,14 @@ delete_task() {
     echo -e "${GREEN}Task ${task_id} deleted.${NC}"
     log_debug "Deleted task ${task_id}"
 }
+
+# start_task: Logs a start/resume event and sends a notification.
+start_task() {
+    local task_id="$1"
+    local start_time
+    start_time=$(date +"%Y-%m-%d %H:%M:%S")
+    echo "${task_id},start,${start_time}" >> "$LOG_FILE"
+    echo -e "${GREEN}Task ${task_id} started/resumed at ${start_time}.${NC}"
+    log_debug "Started/resumed task ${task_id} at ${start_time}"
+    send_notification "task_start" "Task Started" "Task ${task_id} started/resumed at ${start_time}."
+}
