@@ -651,3 +651,11 @@ pause_task() {
     log_debug "Paused task ${task_id} at ${pause_time}"
     send_notification "task_pause" "Task Paused" "Task ${task_id} paused at ${pause_time}."
 }
+
+
+# resume_task: Alias for start_task.
+resume_task() {
+    start_task "$1"
+    echo -e "${GREEN}Task ${1} resumed.${NC}"
+    log_debug "Resumed task ${1}"
+}
