@@ -752,3 +752,23 @@ export_csv() {
         echo -e "${RED}Error exporting CSV.${NC}"
     fi
 }
+
+# export_json: Exports log data in JSON format.
+export_json() {
+    local output_file="$1"
+    {
+        echo "["
+        local first=1
+        while IFS=',' read -r task_id action timestamp; do
+            if [ $first -eq 0 ]; then
+                echo ","
+            fi
+            first=0
+            printf "  {\"task_id\": \"%s\", \"action\": \"%s\", \"timestamp\": \"%s\"}" "$task_id" "$action" "$timestamp"
+        done < "$LOG_FILE"
+        echo ""
+        echo "]"
+    } > "$output_file"
+    echo -e "${GREEN}Log data exported to ${output_file} in JSON format.${NC}"
+    log_debug "Exported log data to JSON: ${output_file}"
+}
