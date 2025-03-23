@@ -292,6 +292,49 @@ EOF
 }
 
 
+unblock_websites() {
+    local sites_file="blocked_sites.txt"
+    echo -e "${GREEN}Unblocking websites"
+    if [[ ! -f "$sites_file" ]]; then
+        echo -e "${YELLOW}Warning: $sites_file not found. Nothing to unblock.${NC}"
+        return
+    fi
+
+
+    while IFS= read -r site || [[ -n "$site" ]]; do
+        site=$(echo "$site" | tr -d ' ')  # Remove spaces
+        [[ -z "$site" || "$site" == \#* ]] && continue  # Skip empty or commented lines
+
+        # Unblock from /etc/hosts
+        sudo sed -i "/$site/d" /etc/hosts
+
+        # Resolve IPv4
+        ipv4=$(dig +short A "$site" | head -n1)
+        if [[ -z "$ipv4" ]]; then
+            ipv4=$(nslookup "$site" | awk '/^Address: / { print $2 }' | grep -v ':' | head -n1)
+        fi
+
+        # Resolve IPv6
+        ipv6=$(dig +short AAAA "$site" | head -n1)
+        if [[ -z "$ipv6" ]]; then
+            ipv6=$(nslookup -type=AAAA "$site" | awk '/^Address: / { print $2 }' | grep ':' | head -n1)
+        fi
+
+        # Unblock IPv4
+        if [[ -n "$ipv4" && "$ipv4" != "127.0.0.1" ]]; then
+            sudo iptables -D OUTPUT -d "$ipv4" -j DROP 2>/dev/null
+        fi
+
+        # Unblock IPv6
+        if [[ -n "$ipv6" && "$ipv6" != "::1" ]]; then
+            sudo ip6tables -D OUTPUT -d "$ipv6" -j DROP 2>/dev/null
+        fi
+    done < "$sites_file"
+
+    # Flush DNS Cache (ensure changes take effect)
+    sudo systemctl restart NetworkManager 2>/dev/null || sudo systemctl restart nscd 2>/dev/null
+}
+
 # Send a messaging notification using a specified API.
 send_messaging_notification() {
     local title="$1"
