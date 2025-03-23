@@ -548,3 +548,187 @@ while getopts ":h" opt; do
     esac
 done
 shift $((OPTIND - 1))
+
+############################################################
+# Interactive Menu
+############################################################
+# interactive_menu() {
+#     local choice
+
+#     # Prompt for direct input first
+#     echo -e "\n${GREEN}Advanced Scheduler Menu:${NC}"
+#     echo "1) Add Task"
+#     echo "2) Update Task"
+#     echo "3) Delete Task"
+#     echo "4) Start/Resume Task"
+#     echo "5) Pause Task"
+#     echo "6) End Task"
+#     echo "7) List Tasks"
+#     echo "8) Schedule Tasks"
+#     echo "9) Export Log to CSV"
+#     echo "10) Export Log to JSON"
+#     echo "11) Plot Report"
+#     echo "12) Sync Calendar"
+#     echo "13) Help"
+#     echo "14) Exit"
+
+#     read -rp "Enter choice (or press Enter for menu): " choice
+
+#     # If user entered a number, process it immediately
+#     if [[ "$choice" =~ ^[0-9]+$ && "$choice" -ge 1 && "$choice" -le 14 ]]; then
+#         echo -e "${GREEN}Processing choice $choice...${NC}"
+#     else
+#         # Open interactive menu if no number was entered
+#         choice=$(whiptail --title "Advanced Scheduler Menu" \
+#             --menu "Choose an option:" 22 78 14 \
+#             "1" "Add Task" \
+#             "2" "Update Task" \
+#             "3" "Delete Task" \
+#             "4" "Start/Resume Task" \
+#             "5" "Pause Task" \
+#             "6" "End Task" \
+#             "7" "List Tasks" \
+#             "8" "Schedule Tasks" \
+#             "9" "Export Log to CSV" \
+#             "10" "Export Log to JSON" \
+#             "11" "Plot Report" \
+#             "12" "Sync Calendar" \
+#             "13" "Help" \
+#             "14" "Exit" 3>&1 1>&2 2>&3)
+#     fi
+
+#     # Process selection
+#     case "$choice" in
+#         1) read -e -rp "Enter task description: " desc
+#            read -e -rp "Enter deadline (YYYY-MM-DD HH:MM): " deadline
+#            read -e -rp "Enter priority (numeric): " priority
+#            read -e -rp "Enter recurrence (none, daily, weekly, monthly): " rec
+#            add_task "$desc" "$deadline" "$priority" "$rec" ;;
+#         2) read -e -rp "Enter task name (or part of it) to update: " query
+#            task_id=$(get_task_id "$query")
+#            read -e -rp "Enter field (description/deadline/priority/recurrence/status): " field
+#            read -e -rp "Enter new value: " value
+#            update_task "$task_id" "$field" "$value" ;;
+#         3) read -e -rp "Enter task name (or part of it) to delete: " query
+#            task_id=$(get_task_id "$query")
+#            delete_task "$task_id" ;;
+#         4) read -e -rp "Enter task name (or part of it) to start/resume: " query
+#            task_id=$(get_task_id "$query")
+#            start_task "$task_id" ;;
+#         5) read -e -rp "Enter task name (or part of it) to pause: " query
+#            task_id=$(get_task_id "$query")
+#            pause_task "$task_id" ;;
+#         6) read -e -rp "Enter task name (or part of it) to end: " query
+#            task_id=$(get_task_id "$query")
+#            end_task "$task_id" ;;
+#         7) list_tasks ;;
+#         8) schedule_tasks ;;
+#         9) read -e -rp "Enter output CSV file name: " csvfile
+#            export_csv "$csvfile" ;;
+#         10) read -e -rp "Enter output JSON file name: " jsonfile
+#             export_json "$jsonfile" ;;
+#         11) plot_report ;;
+#         12) echo -e "${GREEN}Calendar Synchronization Options:${NC}"
+#             echo "1) List upcoming events"
+#             echo "2) Add a new event"
+#             read -e -rp "Choose an action [1-2]: " cal_choice
+#             case "$cal_choice" in
+#                 1) sync_calendar list ;;
+#                 2) sync_calendar add ;;
+#                 *) echo -e "${RED}Invalid calendar option.${NC}" ;;
+#             esac ;;
+#         13) usage ;;
+#         14) echo -e "${GREEN}Exiting...${NC}"; exit 0 ;;
+#         *) echo -e "${RED}Invalid option. Please try again.${NC}" ;;
+#     esac
+#     echo -e "${GREEN}Operation completed. Press Enter to continue...${NC}"
+#     read -r
+#     interactive_menu
+# }
+ #coded edited
+interactive_menu() {
+    while true; do
+        # Prompt user for number input (non-blocking)
+        echo -e "${GREEN}Press a number (1-14) to select an option, or press Enter for menu navigation.${NC}"
+        read -r -n2 -s user_input  # Read up to 2 digits (for 10-14 support)
+
+        # If user typed a number, override menu selection
+        if [[ "$user_input" =~ ^[0-9]+$ ]] && (( user_input >= 1 && user_input <= 14 )); then
+            choice="$user_input"
+            echo -e "\n${GREEN}Selected option: $choice${NC}"
+        else
+            # Show the menu if no valid number input is detected
+            choice=$(whiptail --title "Advanced Scheduler Menu" --menu \
+                "Use arrow keys OR type a number to select an option:" 22 78 14 \
+                "1" "Add Task" \
+                "2" "Update Task" \
+                "3" "Delete Task" \
+                "4" "Start/Resume Task" \
+                "5" "Pause Task" \
+                "6" "End Task" \
+                "7" "List Tasks" \
+                "8" "Schedule Tasks" \
+                "9" "Export Log to CSV" \
+                "10" "Export Log to JSON" \
+                "11" "Plot Report" \
+                "12" "Sync Calendar" \
+                "13" "Help" \
+                "14" "Exit" 3>&1 1>&2 2>&3)
+
+            # If the user pressed "Cancel" (exit if needed)
+            if [ $? -ne 0 ]; then
+                echo -e "${RED}User canceled. Exiting...${NC}"
+                exit 1
+            fi
+        fi
+
+        # Process selection
+        case "$choice" in
+            1) read -e -rp "Enter task description: " desc
+               read -e -rp "Enter deadline (YYYY-MM-DD HH:MM): " deadline
+               read -e -rp "Enter priority (numeric): " priority
+               read -e -rp "Enter recurrence (none, daily, weekly, monthly): " rec
+               add_task "$desc" "$deadline" "$priority" "$rec" ;;
+            2) read -e -rp "Enter task name to update: " query
+               task_id=$(get_task_id "$query")
+               read -e -rp "Enter field (description/deadline/priority/recurrence/status): " field
+               read -e -rp "Enter new value: " value
+               update_task "$task_id" "$field" "$value" ;;
+            3) read -e -rp "Enter task name to delete: " query
+               task_id=$(get_task_id "$query")
+               delete_task "$task_id" ;;
+            4) read -e -rp "Enter task name to start/resume: " query
+               task_id=$(get_task_id "$query")
+               start_task "$task_id" ;;
+            5) read -e -rp "Enter task name to pause: " query
+               task_id=$(get_task_id "$query")
+               pause_task "$task_id" ;;
+            6) read -e -rp "Enter task name to end: " query
+               task_id=$(get_task_id "$query")
+               end_task "$task_id" ;;
+            7) list_tasks ;;
+            8) schedule_tasks ;;
+            9) read -e -rp "Enter output CSV file name: " csvfile
+               export_csv "$csvfile" ;;
+            10) read -e -rp "Enter output JSON file name: " jsonfile
+                export_json "$jsonfile" ;;
+            11) plot_report ;;
+            12) echo -e "${GREEN}Calendar Synchronization Options:${NC}"
+                echo "1) List upcoming events"
+                echo "2) Add a new event"
+                read -e -rp "Choose an action [1-2]: " cal_choice
+                case "$cal_choice" in
+                    1) sync_calendar list ;;
+                    2) sync_calendar add ;;
+                    *) echo -e "${RED}Invalid calendar option.${NC}" ;;
+                esac ;;
+            13) usage ;;
+            14) echo -e "${GREEN}Exiting...${NC}"; exit 0 ;;
+            *) whiptail --msgbox "Invalid choice! Try again." 10 50 ;;
+        esac
+
+        # Return to menu after each operation
+        whiptail --msgbox "Operation completed. Press OK to continue..." 10 50
+    done
+}
+
