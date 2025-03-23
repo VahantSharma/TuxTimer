@@ -145,6 +145,16 @@ else
     DEBUG_MODE=0
 fi
 touch "$TASK_DB" "$LOG_FILE" "$DEBUG_LOG"
+first_line=$(head -n 1 "$TASK_DB")
+column_count=$(echo "$first_line" | awk -F, '{print NF}')
+
+if [ "$column_count" -lt 7 ]; then
+    echo "Updating TASK_DB format..."
+    awk -F, '{print $0",0"}' "$TASK_DB" > "${TASK_DB}.tmp"
+    mv "${TASK_DB}.tmp" "$TASK_DB"
+    echo "TASK_DB updated successfully!"
+fi
+
 
 #######################################
 # Logging Functions with Levels
