@@ -1243,3 +1243,72 @@ send_notification() {
     send_email_notification "$title" "$message"
     send_messaging_notification "$title" "$message"
 }
+
+############################################################
+# Caching Function for Task Duration
+############################################################
+get_cached_duration() {
+    local task_id="$1"
+    local log_mtime
+    log_mtime=$(stat -c %Y "$LOG_FILE")
+    if [[ -f "$CACHE_FILE" && "$log_mtime" -eq "$CACHE_TIMESTAMP" ]]; then
+        local cached
+        cached=$(grep "^${task_id}," "$CACHE_FILE" | cut -d',' -f2)
+        if [[ -n "$cached" ]]; then
+            echo "$cached"
+            return
+        fi
+    fi
+    CACHE_TIMESTAMP="$log_mtime"
+    > "$CACHE_FILE"
+    while IFS=',' read -r tid _; do
+        local dur
+        dur=$(calculate_task_duration "$tid")
+        echo "${tid},${dur}" >> "$CACHE_FILE"
+    done < <(awk -F, 'NF{print $1}' "$LOG_FILE" | sort | uniq)
+    grep "^${task_id}," "$CACHE_FILE" | cut -d',' -f2
+}
+
+
+############################################################
+# Task Selection Functions
+############################################################
+select_task() {
+    local query="$1"
+    local tasks
+    tasks=$(awk -F, '{gsub(/"/, "", $2); print $1": "$2}' "$TASK_DB")
+    if [[ -n "$query" ]]; then
+        tasks=$(echo "$tasks" | grep -i "$query")
+    fi
+    if [[ -z "$tasks" ]]; then
+        echo -e "${RED}No tasks found matching query: $query${NC}" >&2
+        return 1
+    fi
+    local selected
+    if [[ "$FZF_AVAILABLE" -eq 1 ]]; then
+        selected=$(echo "$tasks" | fzf --prompt="Select task: ")
+    else
+        echo -e "${YELLOW}Multiple tasks found. Please choose one by entering the task ID:${NC}"
+        echo "$tasks"
+        read -rp "Task ID: " selected
+    fi
+    local id
+    id=$(echo "$selected" | cut -d: -f1)
+    echo "$id"
+}
+
+get_task_id() {
+    local input="$1"
+    if [[ "$input" =~ ^[0-9]+$ ]]; then
+        echo "$input"
+    else
+        local id
+        id=$(select_task "$input")
+        if [[ -z "$id" ]]; then
+            echo -e "${RED}Task selection failed. Exiting.${NC}" >&2
+            exit 1
+        fi
+        echo "$id"
+    fi
+}
+
