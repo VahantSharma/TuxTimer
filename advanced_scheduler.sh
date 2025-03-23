@@ -732,3 +732,84 @@ interactive_menu() {
     done
 }
 
+
+
+
+
+################################################################################
+# Core Task Management Functions
+################################################################################
+
+# validate_date: Verifies the provided date string.
+validate_date() {
+    if ! date -d "$1" >/dev/null 2>&1; then
+        echo -e "${RED}Invalid date format: $1${NC}" >&2
+        return 1
+    fi
+    return 0
+}
+
+# add_task: Adds a new task.
+add_task() {
+    local description="$1"
+    local deadline="$2"
+    local priority="$3"
+    local recurrence="$4"
+
+    validate_date "$deadline" || return 1
+
+    read -e -rp "Enable productivity mode? (y/n): " enable_productivity
+    if [[ "$enable_productivity" =~ ^[Yy]$ ]]; then
+        productivity_mode=1
+    else
+        productivity_mode=0
+    fi
+
+    local id
+    id=$(date +%s)  # Unique task ID
+
+    echo "${id},\"${description}\",\"${deadline}\",${priority},${recurrence},pending,${productivity_mode}" >> "$TASK_DB"
+    echo -e "${GREEN}Task added with ID: ${id}${NC}"
+    log_debug "Added task ${id}: ${description}, Deadline: ${deadline}, Priority: ${priority}, Recurrence: ${recurrence}, Productivity Mode: ${productivity_mode}"
+}
+
+# list_tasks: Displays all tasks.
+list_tasks() {
+    if [[ ! -s "$TASK_DB" ]]; then
+        echo -e "${YELLOW}No tasks found.${NC}"
+        return
+    fi
+    echo -e "${GREEN}ID, Description, Deadline, Priority, Recurrence, Status${NC}"
+    cat "$TASK_DB"
+}
+
+# update_task: Updates a task field.
+update_task() {
+    local task_id="$1"
+    local field="$2"
+    local new_value="$3"
+    local field_index
+
+    case "$field" in
+        description) field_index=2 ;;
+        deadline)
+            validate_date "$new_value" || return 1
+            field_index=3 ;;
+        priority) field_index=4 ;;
+        recurrence) field_index=5 ;;
+        status) field_index=6 ;;
+        productivity) field_index=7 ;;  # Added support for productivity mode
+        *)
+            echo -e "${RED}Unknown field: $field${NC}"
+            return 1
+            ;;
+    esac
+
+    awk -F, -v id="$task_id" -v idx="$field_index" -v new="$new_value" 'BEGIN {OFS=","} {
+        if ($1 == id) { $idx = new }
+        print
+    }' "$TASK_DB" > "${TASK_DB}.tmp" && mv "${TASK_DB}.tmp" "$TASK_DB"
+
+    echo -e "${GREEN}Task ${task_id} updated: set $field to ${new_value}.${NC}"
+    log_debug "Updated task ${task_id}: set $field to ${new_value}"
+}
