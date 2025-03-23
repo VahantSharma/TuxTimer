@@ -155,7 +155,6 @@ if [ "$column_count" -lt 7 ]; then
     echo "TASK_DB updated successfully!"
 fi
 
-
 #######################################
 # Logging Functions with Levels
 #######################################
@@ -223,6 +222,75 @@ send_email_notification() {
         fi
     fi
 }
+
+block_websites() {
+    local sites_file="blocked_sites.txt"
+
+    # Ensure blocked_sites.txt exists
+    echo -e "${RED}Blocking distracting websites"
+    if [[ ! -f "$sites_file" ]]; then
+        echo -e "${YELLOW}Warning: $sites_file not found. Creating default list...${NC}"
+        cat <<EOF > "$sites_file"
+facebook.com
+www.facebook.com
+instagram.com
+www.instagram.com
+cdn.instagram.com
+twitter.com
+www.twitter.com
+tiktok.com
+www.tiktok.com
+reddit.com
+www.reddit.com
+discord.com
+www.discord.com
+netflix.com
+www.netflix.com
+twitch.tv
+www.twitch.tv
+open.spotify.com
+
+EOF
+    fi
+
+    
+    while IFS= read -r site || [[ -n "$site" ]]; do
+        site=$(echo "$site" | tr -d ' ')  # Remove spaces
+        [[ -z "$site" || "$site" == \#* ]] && continue  # Skip empty or commented lines
+
+        # Block via /etc/hosts
+        if ! grep -q "$site" /etc/hosts; then
+            echo "127.0.0.1 $site" | sudo tee -a /etc/hosts > /dev/null
+            echo "::1 $site" | sudo tee -a /etc/hosts > /dev/null
+        fi
+
+        # Resolve IPv4
+        ipv4=$(dig +short A "$site" | head -n1)
+        if [[ -z "$ipv4" ]]; then
+            ipv4=$(nslookup "$site" | awk '/^Address: / { print $2 }' | grep -v ':' | head -n1)
+        fi
+
+        # Resolve IPv6
+        ipv6=$(dig +short AAAA "$site" | head -n1)
+        if [[ -z "$ipv6" ]]; then
+            ipv6=$(nslookup -type=AAAA "$site" | awk '/^Address: / { print $2 }' | grep ':' | head -n1)
+        fi
+
+        # Block IPv4
+        if [[ -n "$ipv4" && "$ipv4" != "127.0.0.1" ]]; then
+            sudo iptables -A OUTPUT -d "$ipv4" -j DROP
+        fi
+
+        # Block IPv6
+        if [[ -n "$ipv6" && "$ipv6" != "::1" ]]; then
+            sudo ip6tables -A OUTPUT -d "$ipv6" -j DROP
+        fi
+    done < "$sites_file"
+
+    # Flush DNS Cache (ensure changes take effect)
+    sudo systemctl restart NetworkManager 2>/dev/null || sudo systemctl restart nscd 2>/dev/null
+}
+
 
 # Send a messaging notification using a specified API.
 send_messaging_notification() {
