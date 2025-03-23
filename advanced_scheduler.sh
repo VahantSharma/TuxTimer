@@ -813,3 +813,89 @@ update_task() {
     echo -e "${GREEN}Task ${task_id} updated: set $field to ${new_value}.${NC}"
     log_debug "Updated task ${task_id}: set $field to ${new_value}"
 }
+
+
+
+# delete_task: Deletes a task.
+delete_task() {
+    local task_id="$1"
+    sed -i "/^${task_id},/d" "$TASK_DB"
+    echo -e "${GREEN}Task ${task_id} deleted.${NC}"
+    log_debug "Deleted task ${task_id}"
+}
+
+# start_task: Logs a start/resume event and sends a notification.
+start_task() {
+    local task_id="$1"
+    local start_time
+    start_time=$(date +"%Y-%m-%d %H:%M:%S")
+
+    # Read the productivity mode setting from the database
+    local productivity_mode
+    productivity_mode=$(awk -F, -v id="$task_id" '$1 == id {print $7}' "$TASK_DB")
+
+    echo "${task_id},start,${start_time}" >> "$LOG_FILE"
+    echo -e "${GREEN}Task ${task_id} started/resumed at ${start_time}.${NC}"
+    log_debug "Started task ${task_id} at ${start_time}"
+
+    if [[ "$productivity_mode" -eq 1 ]]; then
+        echo -e "${YELLOW}Enabling productivity mode... Blocking websites.${NC}"
+        block_websites
+    fi
+
+    send_notification "task_start" "Task Started" "Task ${task_id} started at ${start_time}."
+}
+
+# pause_task: Logs a pause event and sends a notification.
+pause_task() {
+    local task_id="$1"
+    local pause_time
+    pause_time=$(date +"%Y-%m-%d %H:%M:%S")
+
+    # Read the productivity mode setting from the database
+    local productivity_mode
+    productivity_mode=$(awk -F, -v id="$task_id" '$1 == id {print $7}' "$TASK_DB")
+
+    echo "${task_id},pause,${pause_time}" >> "$LOG_FILE"
+    echo -e "${GREEN}Task ${task_id} paused at ${pause_time}.${NC}"
+    log_debug "Paused task ${task_id} at ${pause_time}"
+
+    if [[ "$productivity_mode" -eq 1 ]]; then
+        echo -e "${YELLOW}Disabling productivity mode... Unblocking websites.${NC}"
+        unblock_websites
+    fi
+
+    send_notification "task_pause" "Task Paused" "Task ${task_id} paused at ${pause_time}."
+}
+
+
+# resume_task: Alias for start_task.
+resume_task() {
+    start_task "$1"
+    echo -e "${GREEN}Task ${1} resumed.${NC}"
+    log_debug "Resumed task ${1}"
+}
+
+# end_task: Logs an end event, updates task status, and sends a notification.
+
+end_task() {
+    local task_id="$1"
+    local end_time
+    end_time=$(date +"%Y-%m-%d %H:%M:%S")
+
+    # Read the productivity mode setting from the database
+    local productivity_mode
+    productivity_mode=$(awk -F, -v id="$task_id" '$1 == id {print $7}' "$TASK_DB")
+
+    echo "${task_id},end,${end_time}" >> "$LOG_FILE"
+    sed -i "s/^\(${task_id},.*\),pending$/\1,completed/" "$TASK_DB"
+    echo -e "${GREEN}Task ${task_id} ended at ${end_time}.${NC}"
+    log_debug "Ended task ${task_id} at ${end_time}"
+
+    if [[ "$productivity_mode" -eq 1 ]]; then
+        echo -e "${YELLOW}Disabling productivity mode... Unblocking websites.${NC}"
+        unblock_websites
+    fi
+
+    send_notification "task_end" "Task Ended" "Task ${task_id} ended at ${end_time}."
+}
