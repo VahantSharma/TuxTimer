@@ -899,3 +899,72 @@ end_task() {
 
     send_notification "task_end" "Task Ended" "Task ${task_id} ended at ${end_time}."
 }
+# calculate_task_duration: Computes total active time for a task.
+calculate_task_duration() {
+    local task_id="$1"
+    local total_duration=0
+    local last_start=""
+    while IFS=',' read -r tid action timestamp; do
+        if [ "$tid" == "$task_id" ]; then
+            local epoch
+            epoch=$(date -d "$timestamp" +%s 2>/dev/null)
+            if [ "$action" == "start" ]; then
+                last_start=$epoch
+            elif [[ "$action" == "pause" || "$action" == "end" ]]; then
+                if [ -n "$last_start" ]; then
+                    local diff=$(( epoch - last_start ))
+                    total_duration=$(( total_duration + diff ))
+                    last_start=""
+                fi
+            fi
+        fi
+    done < "$LOG_FILE"
+    if [ -n "$last_start" ]; then
+        local now
+        now=$(date +%s)
+        total_duration=$(( total_duration + now - last_start ))
+    fi
+    echo "$total_duration"
+}
+
+# schedule_tasks: Generates cron entries for recurring tasks.
+schedule_tasks() {
+    crontab -l > "$CRON_TEMP" 2>/dev/null
+    sed -i '/# advanced_scheduler/d' "$CRON_TEMP"
+    declare -A scheduled_slots
+    while IFS=',' read -r id description deadline priority recurrence _; do
+        recurrence=$(echo "$recurrence" | tr -d ' ')
+        if [[ "$recurrence" != "none" && "$recurrence" != "" ]]; then
+            if ! cron_minute=$(date -d "$deadline" +"%M" 2>/dev/null) || \
+               ! cron_hour=$(date -d "$deadline" +"%H" 2>/dev/null); then
+                log_debug "Skipping task ${id}: invalid deadline format ($deadline)"
+                continue
+            fi
+            local cron_day="*"
+            local cron_month="*"
+            local cron_weekday="*"
+            case "$recurrence" in
+                daily) ;;  
+                weekly) cron_weekday=$(date -d "$deadline" +"%u") ;;
+                monthly) cron_day=$(date -d "$deadline" +"%d") ;;
+            esac
+            local key="${cron_minute} ${cron_hour} ${cron_day} ${cron_month} ${cron_weekday}"
+            local orig_key="$key"
+            while [[ -n "${scheduled_slots[$key]}" && ${priority} -gt ${scheduled_slots[$key]} ]]; do
+                cron_minute=$(( (10#$cron_minute + 1) % 60 ))
+                key="${cron_minute} ${cron_hour} ${cron_day} ${cron_month} ${cron_weekday}"
+            done
+            scheduled_slots["$key"]=$priority
+            local cmd
+            cmd="$(pwd)/advanced_scheduler.sh start-task ${id}"
+            local command="${cmd} # advanced_scheduler"
+            echo "${cron_minute} ${cron_hour} ${cron_day} ${cron_month} ${cron_weekday} ${command}" >> "$CRON_TEMP"
+            log_debug "Scheduled task ${id} (orig key: '${orig_key}', adjusted key: '${key}') with priority ${priority}"
+        fi
+    done < <(sort -t',' -k3 "$TASK_DB")
+    if crontab "$CRON_TEMP"; then
+        echo -e "${GREEN}Recurring tasks scheduled with cron.${NC}"
+    else
+        echo -e "${RED}Error installing cron jobs. Please check your cron configuration.${NC}"
+    fi
+}
