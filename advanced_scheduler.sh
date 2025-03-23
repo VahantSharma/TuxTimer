@@ -530,3 +530,21 @@ Examples:
 
 EOF
 }
+
+############################################################
+# Advanced Argument Parsing with getopts
+############################################################
+while getopts ":h" opt; do
+    case $opt in
+        h)
+            usage
+            exit 0
+            ;;
+        \?)
+            echo -e "${RED}Invalid option: -$OPTARG${NC}" >&2
+            usage
+            exit 1
+            ;;
+    esac
+done
+shift $((OPTIND - 1))
