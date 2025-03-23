@@ -437,3 +437,47 @@ get_task_id() {
     fi
 }
 
+
+############################################################
+# Calendar Integration Functions using Calcurse
+############################################################
+sync_calendar() {
+    if [[ "$CALCURSE_AVAILABLE" -ne 1 ]]; then
+        echo -e "${RED}Calcurse is not installed. Please install calcurse to use calendar synchronization.${NC}"
+        exit 1
+    fi
+    local action="$1"
+    shift
+    #code edited
+        case "$action" in
+        interactive)
+            echo -e "${GREEN}Launching Calcurse interactive mode...${NC}"
+            calcurse
+            ;;
+        list)
+            echo -e "${GREEN}Fetching upcoming events from calcurse...${NC}"
+            calcurse -Q --from today --days 7
+            ;;
+        add)
+            read -e -rp "Enter event title: " title
+            read -e -rp "Enter start time (YYYY-MM-DD HH:MM): " start_time
+            read -e -rp "Enter duration in minutes: " duration
+            read -e -rp "Enter event description (optional): " description
+            local end_time
+            end_time=$(date -d "$start_time $duration minutes" +"%H:%M")
+            local event_date
+            event_date=$(date -d "$start_time" +"%Y-%m-%d")
+            local temp_file
+            temp_file=$(mktemp)
+            echo "%% appointments %%" > "$temp_file"
+            echo "${event_date} ${start_time##* }-${end_time} ${title}: ${description}" >> "$temp_file"
+            echo -e "${GREEN}Adding event to calcurse...${NC}"
+            calcurse -i "$temp_file"
+            rm -f "$temp_file"
+            ;;
+        *)
+            echo -e "${RED}Unsupported calendar action. Supported actions: list, add.${NC}"
+            ;;
+    esac
+}
+
