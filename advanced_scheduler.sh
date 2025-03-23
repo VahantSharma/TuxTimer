@@ -481,3 +481,52 @@ sync_calendar() {
     esac
 }
 
+############################################################
+# Usage Function
+############################################################
+usage() {
+    cat <<EOF
+Usage: $0 [OPTIONS] {command [arguments]}
+
+Options:
+  -h, --help           Display this help message and exit.
+
+Commands:
+  add-task             Add a new task.
+                       Usage: $0 add-task "Task Description" "YYYY-MM-DD HH:MM" Priority Recurrence
+  update-task          Update an existing task.
+                       Usage: $0 update-task <task_id_or_query> Field NewValue
+                       (Field: description, deadline, priority, recurrence, status)
+  delete-task          Delete a task.
+                       Usage: $0 delete-task <task_id_or_query>
+  start-task           Start or resume a task.
+                       Usage: $0 start-task <task_id_or_query>
+  pause-task           Pause an active task.
+                       Usage: $0 pause-task <task_id_or_query>
+  end-task             End a task.
+                       Usage: $0 end-task <task_id_or_query>
+  list-tasks           List all tasks.
+                       Usage: $0 list-tasks
+  schedule-tasks       Schedule recurring tasks with cron.
+                       Usage: $0 schedule-tasks
+  export-csv           Export log data in CSV format.
+                       Usage: $0 export-csv output_file.csv
+  export-json          Export log data in JSON format.
+                       Usage: $0 export-json output_file.json
+  plot-report          Generate a task duration report using GNUplot.
+                       Usage: $0 plot-report
+  sync-calendar        Synchronize with calcurse.
+                       Usage: $0 sync-calendar <action>
+                       Supported actions: list, add
+
+Examples:
+  $0 add-task "Review paper" "2025-03-15 14:00" 1 daily
+  $0 start-task "Review"
+  $0 pause-task "Review"
+  $0 resume-task "Review"
+  $0 end-task "Review"
+  $0 sync-calendar list
+  $0 sync-calendar add
+
+EOF
+}
