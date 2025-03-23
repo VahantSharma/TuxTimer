@@ -1077,3 +1077,66 @@ CACHE_TIMESTAMP=""
 
 # Global associative array to track last notification times
 declare -A LAST_NOTIFICATION
+
+###############################################
+# Dependency Checks & Configuration Setup
+###############################################
+check_dependencies() {
+    local deps=(date crontab sed awk mktemp)
+    for dep in "${deps[@]}"; do
+        if ! command -v "$dep" >/dev/null 2>&1; then
+            echo -e "${RED}Error: Required command '$dep' is not installed.${NC}"
+            exit 1
+        fi
+    done
+
+    if ! command -v gnuplot >/dev/null 2>&1; then
+        echo -e "${YELLOW}Warning: GNUplot is not installed. 'plot-report' will not work.${NC}"
+    fi
+
+    if command -v whiptail >/dev/null 2>&1; then
+        MENU_TOOL="whiptail"
+    elif command -v dialog >/dev/null 2>&1; then
+        MENU_TOOL="dialog"
+    else
+        MENU_TOOL=""
+    fi
+
+    if command -v fzf >/dev/null 2>&1; then
+        FZF_AVAILABLE=1
+    else
+        FZF_AVAILABLE=0
+    fi
+
+    if command -v calcurse >/dev/null 2>&1; then
+        CALCURSE_AVAILABLE=1
+    else
+        CALCURSE_AVAILABLE=0
+    fi
+}
+check_dependencies
+
+###############################################
+# Configuration Management
+# shellcheck source=/dev/null
+###############################################
+CONFIG_FILE="./advanced_scheduler.conf"
+if [[ -f "$CONFIG_FILE" ]]; then
+    source "$CONFIG_FILE"
+else
+    TASK_DB="tasks.db"
+    LOG_FILE="tasks.log"
+    CRON_TEMP="cron_temp.txt"
+    DEBUG_LOG="debug.log"
+    DEBUG_MODE=0
+fi
+touch "$TASK_DB" "$LOG_FILE" "$DEBUG_LOG"
+first_line=$(head -n 1 "$TASK_DB")
+column_count=$(echo "$first_line" | awk -F, '{print NF}')
+
+if [ "$column_count" -lt 7 ]; then
+    echo "Updating TASK_DB format..."
+    awk -F, '{print $0",0"}' "$TASK_DB" > "${TASK_DB}.tmp"
+    mv "${TASK_DB}.tmp" "$TASK_DB"
+    echo "TASK_DB updated successfully!"
+fi
