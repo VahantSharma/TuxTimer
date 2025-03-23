@@ -968,3 +968,20 @@ schedule_tasks() {
         echo -e "${RED}Error installing cron jobs. Please check your cron configuration.${NC}"
     fi
 }
+
+# export_csv: Exports log data in CSV format.
+export_csv() {
+    local output_file="$1"
+    if cp "$LOG_FILE" "$output_file"; then
+        echo -e "${GREEN}Log data exported to ${output_file} in CSV format.${NC}"
+        log_debug "Exported log data to CSV: ${output_file}"
+    else
+        echo -e "${RED}Error exporting CSV.${NC}"
+    fi
+}
+
+# export_json: Exports log data in JSON format.
+export_json() {
+    local output_file="$1"
+    {
+        echo #!/bin/bash
